@@ -2,7 +2,6 @@ import bpy
 import bmesh
 import os
 
-
 # -------------------------
 # CONFIG
 # -------------------------
@@ -10,10 +9,8 @@ WIDTH = 2.4
 HEIGHT = 2.2
 DEPTH = 0.6
 
-FRAME_THICKNESS = 0.15
-HEARTH_HEIGHT = 0.2
-MANTEL_HEIGHT = 1.6
-MANTEL_DEPTH = 0.25
+FRAME = 0.2
+OPENING_HEIGHT = 1.2
 
 
 # -------------------------
@@ -24,17 +21,16 @@ def clear_scene():
     bpy.ops.object.delete(use_global=False)
 
 
-def add_box(bm, x_min, x_max, y_min, y_max, z_min, z_max):
+def add_box(bm, xmin, xmax, ymin, ymax, zmin, zmax):
     v = [
-        bm.verts.new((x_min, y_min, z_min)),
-        bm.verts.new((x_max, y_min, z_min)),
-        bm.verts.new((x_max, y_max, z_min)),
-        bm.verts.new((x_min, y_max, z_min)),
-
-        bm.verts.new((x_min, y_min, z_max)),
-        bm.verts.new((x_max, y_min, z_max)),
-        bm.verts.new((x_max, y_max, z_max)),
-        bm.verts.new((x_min, y_max, z_max)),
+        bm.verts.new((xmin, ymin, zmin)),
+        bm.verts.new((xmax, ymin, zmin)),
+        bm.verts.new((xmax, ymax, zmin)),
+        bm.verts.new((xmin, ymax, zmin)),
+        bm.verts.new((xmin, ymin, zmax)),
+        bm.verts.new((xmax, ymin, zmax)),
+        bm.verts.new((xmax, ymax, zmax)),
+        bm.verts.new((xmin, ymax, zmax)),
     ]
 
     faces = [
@@ -67,12 +63,27 @@ def create_fireplace():
     half_w = WIDTH / 2
     half_d = DEPTH / 2
 
+    opening_w = WIDTH - 2 * FRAME
+
     # -------------------------
-    # Outer Frame
+    # LEFT WALL
     # -------------------------
     add_box(
         bm,
         -half_w,
+        -half_w + FRAME,
+        -half_d,
+        half_d,
+        0,
+        HEIGHT
+    )
+
+    # -------------------------
+    # RIGHT WALL
+    # -------------------------
+    add_box(
+        bm,
+        half_w - FRAME,
         half_w,
         -half_d,
         half_d,
@@ -81,100 +92,48 @@ def create_fireplace():
     )
 
     # -------------------------
-    # Firebox cavity (front opening)
-    # Instead of boolean, build internal void walls
+    # TOP BEAM
     # -------------------------
-
-    cavity_width = WIDTH - 2 * FRAME_THICKNESS
-    cavity_height = HEIGHT - FRAME_THICKNESS
-    cavity_depth = DEPTH - FRAME_THICKNESS
-
-    c_half_w = cavity_width / 2
-    c_half_d = cavity_depth / 2
-
-    # Remove front center by adding inner "negative space" walls
-    # Left inner wall
     add_box(
         bm,
-        -c_half_w,
-        -c_half_w + FRAME_THICKNESS,
-        -c_half_d,
-        c_half_d,
-        HEARTH_HEIGHT,
-        cavity_height
-    )
-
-    # Right inner wall
-    add_box(
-        bm,
-        c_half_w - FRAME_THICKNESS,
-        c_half_w,
-        -c_half_d,
-        c_half_d,
-        HEARTH_HEIGHT,
-        cavity_height
-    )
-
-    # Top inner wall
-    add_box(
-        bm,
-        -c_half_w,
-        c_half_w,
-        -c_half_d,
-        c_half_d,
-        cavity_height - FRAME_THICKNESS,
-        cavity_height
-    )
-
-    # Back panel
-    add_box(
-        bm,
-        -c_half_w,
-        c_half_w,
-        c_half_d - FRAME_THICKNESS,
-        c_half_d,
-        HEARTH_HEIGHT,
-        cavity_height
+        -half_w,
+        half_w,
+        -half_d,
+        half_d,
+        OPENING_HEIGHT,
+        OPENING_HEIGHT + FRAME
     )
 
     # -------------------------
-    # Hearth Slab
+    # BACK WALL (inside cavity)
+    # -------------------------
+    add_box(
+        bm,
+        -opening_w/2,
+        opening_w/2,
+        half_d - FRAME,
+        half_d,
+        0,
+        OPENING_HEIGHT
+    )
+
+    # -------------------------
+    # HEARTH
     # -------------------------
     add_box(
         bm,
         -half_w * 0.8,
         half_w * 0.8,
-        -half_d - 0.1,
+        -half_d - 0.2,
         half_d,
         0,
-        HEARTH_HEIGHT
+        FRAME
     )
 
-    # -------------------------
-    # Mantel Shelf
-    # -------------------------
-    add_box(
-        bm,
-        -half_w * 0.9,
-        half_w * 0.9,
-        -half_d - MANTEL_DEPTH,
-        -half_d + FRAME_THICKNESS,
-        MANTEL_HEIGHT,
-        MANTEL_HEIGHT + FRAME_THICKNESS
-    )
-
-    # Finalize
     bm.to_mesh(mesh)
     bm.free()
 
     return obj
-
-
-# -------------------------
-# EXPORT
-# -------------------------
-def export_fbx(filepath):
-    bpy.ops.export_scene.fbx(filepath=filepath, use_selection=False)
 
 
 # -------------------------
@@ -190,6 +149,6 @@ if __name__ == "__main__":
         "fireplace.fbx"
     )
 
-    export_fbx(export_path)
+    bpy.ops.export_scene.fbx(filepath=export_path, use_selection=False)
 
     print("Fireplace exported.")
